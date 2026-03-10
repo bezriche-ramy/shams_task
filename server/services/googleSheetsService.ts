@@ -1,7 +1,7 @@
 import { JWT } from 'google-auth-library'
 import { GoogleSpreadsheet } from 'google-spreadsheet'
 import { nanoid } from 'nanoid'
-import { hashPassword } from './security.ts'
+import { hashPassword } from './security'
 
 const TEAMS = ['Frontend', 'Backend', 'Database', 'Docs', 'UI/UX'] as const
 const USER_ROLES = ['Admin', 'User'] as const

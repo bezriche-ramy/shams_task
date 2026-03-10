@@ -9,8 +9,8 @@ import {
   teams,
   type TaskStatus,
   type User,
-} from './services/googleSheetsService.ts'
-import { signAuthToken, verifyAuthToken, verifyPassword } from './services/security.ts'
+} from './services/googleSheetsService'
+import { signAuthToken, verifyAuthToken, verifyPassword } from './services/security'
 
 const sheetsService = new GoogleSheetsService()
 const app = express()
