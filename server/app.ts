@@ -2,6 +2,7 @@ import 'dotenv/config'
 import cors from 'cors'
 import express from 'express'
 import helmet from 'helmet'
+import { rateLimit } from 'express-rate-limit'
 import {
   GoogleSheetsService,
   taskStatuses,
@@ -111,7 +112,15 @@ app.get('/api/health', (_request, response) => {
   })
 })
 
-app.post('/api/auth/login', async (request, response) => {
+const loginRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  message: { message: 'Too many login attempts. Please try again later.' },
+})
+
+app.post('/api/auth/login', loginRateLimit, async (request, response) => {
   try {
     const email = String(request.body?.email ?? '').trim().toLowerCase()
     const password = String(request.body?.password ?? '')
@@ -132,9 +141,9 @@ app.post('/api/auth/login', async (request, response) => {
       token,
       user: match.user,
     })
-  } catch (error) {
+  } catch {
     return response.status(500).json({
-      message: error instanceof Error ? error.message : 'Unable to complete login',
+      message: 'Unable to complete login',
     })
   }
 })

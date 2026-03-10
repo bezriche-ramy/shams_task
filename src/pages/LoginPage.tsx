@@ -24,7 +24,8 @@ export function LoginPage() {
   }
 
   const locationState = location.state as LocationState | null
-  const destination = locationState?.from?.pathname ?? '/dashboard'
+  const rawDestination = locationState?.from?.pathname ?? '/dashboard'
+  const destination = rawDestination.startsWith('/') && !rawDestination.startsWith('//') ? rawDestination : '/dashboard'
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()

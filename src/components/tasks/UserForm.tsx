@@ -86,6 +86,7 @@ export function UserForm({ onSubmit }: UserFormProps) {
           </label>
           <input
             id="user-password"
+            type="password"
             required
             value={formState.password}
             onChange={(event) => setFormState((current) => ({ ...current, password: event.target.value }))}
