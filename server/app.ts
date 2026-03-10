@@ -142,7 +142,8 @@ app.post('/api/auth/login', loginRateLimit, async (request, response) => {
       token,
       user: match.user,
     })
-  } catch {
+  } catch (error) {
+    console.error('Login error:', error)
     return response.status(500).json({
       message: 'Unable to complete login',
     })
