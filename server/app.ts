@@ -15,31 +15,44 @@ import { signAuthToken, verifyAuthToken, verifyPassword } from './services/secur
 const sheetsService = new GoogleSheetsService()
 const app = express()
 
+function normalizeOrigin(origin: string) {
+  return origin.trim().replace(/\/+$/, '').toLowerCase()
+}
+
 const allowedOrigins = (process.env.CLIENT_ORIGIN ?? '')
   .split(',')
-  .map((origin) => origin.trim())
+  .map((origin) => normalizeOrigin(origin))
   .filter(Boolean)
 
 app.disable('x-powered-by')
 app.use(helmet())
 app.use(
-  cors({
-    origin(origin, callback) {
-      if (!origin) {
-        return callback(null, true)
-      }
+  cors((request, callback) => {
+    const origin = request.header('origin')
 
-      // Same-origin Vercel deployments work without an explicit CLIENT_ORIGIN.
-      if (!allowedOrigins.length) {
-        return callback(null, true)
-      }
+    if (!origin) {
+      return callback(null, { origin: true })
+    }
 
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true)
-      }
+    const requestHost = request.header('x-forwarded-host') ?? request.header('host')
+    const requestProtocol = request.header('x-forwarded-proto') ?? request.protocol
+    const requestOrigin = requestHost ? normalizeOrigin(`${requestProtocol}://${requestHost}`) : null
+    const normalizedOrigin = normalizeOrigin(origin)
 
-      return callback(new Error('Origin not allowed by CORS'))
-    },
+    // Same-origin browser requests should always pass, even if CLIENT_ORIGIN is misconfigured.
+    if (requestOrigin && normalizedOrigin === requestOrigin) {
+      return callback(null, { origin: true })
+    }
+
+    if (!allowedOrigins.length) {
+      return callback(null, { origin: true })
+    }
+
+    if (allowedOrigins.includes(normalizedOrigin)) {
+      return callback(null, { origin: true })
+    }
+
+    return callback(new Error('Origin not allowed by CORS'))
   }),
 )
 app.use(express.json({ limit: '16kb' }))
