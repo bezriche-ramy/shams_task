@@ -20,16 +20,17 @@ const allowedOrigins = (process.env.CLIENT_ORIGIN ?? '')
   .map((origin) => origin.trim())
   .filter(Boolean)
 
-if (process.env.NODE_ENV === 'production' && !allowedOrigins.length) {
-  throw new Error('CLIENT_ORIGIN must be set in production')
-}
-
 app.disable('x-powered-by')
 app.use(helmet())
 app.use(
   cors({
     origin(origin, callback) {
       if (!origin) {
+        return callback(null, true)
+      }
+
+      // Same-origin Vercel deployments work without an explicit CLIENT_ORIGIN.
+      if (!allowedOrigins.length) {
         return callback(null, true)
       }
 
@@ -74,7 +75,7 @@ async function requireAuth(
 
     request.currentUser = sessionUser.user
     return next()
-  } catch (error) {
+  } catch {
     return response.status(500).json({
       message: 'Unable to validate session',
     })
@@ -156,7 +157,7 @@ app.get('/api/tasks', requireAuth, async (request: AuthenticatedRequest, respons
   try {
     const tasks = await sheetsService.listTasks()
     response.json({ tasks: sanitizeTaskVisibility(request.currentUser!, tasks) })
-  } catch (error) {
+  } catch {
     response.status(500).json({
       message: 'Unable to load tasks',
     })
@@ -228,7 +229,7 @@ app.get('/api/users', requireAuth, requireAdmin, async (_request, response) => {
   try {
     const users = await sheetsService.listUsers()
     response.json({ users })
-  } catch (error) {
+  } catch {
     response.status(500).json({
       message: 'Unable to load users',
     })

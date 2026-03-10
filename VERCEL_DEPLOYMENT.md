@@ -3,22 +3,23 @@
 ## What this project expects
 
 - Vite frontend built to `dist`
-- API routes exposed through `api/[...route].ts`
+- API routes exposed through `api/*.ts` and nested `api/**` route files
 - Google Sheets used as the database
 - Signed stateless auth tokens via `AUTH_TOKEN_SECRET`
 
 ## Environment variables to add in Vercel
 
-- `CLIENT_ORIGIN`
 - `GOOGLE_SHEET_ID`
 - `GOOGLE_SERVICE_ACCOUNT_EMAIL`
 - `GOOGLE_PRIVATE_KEY_BASE64`
 - `AUTH_TOKEN_SECRET`
 
-## Recommended values
+Optional:
 
 - `CLIENT_ORIGIN`
-  - your Vercel production URL, for example `https://your-project.vercel.app`
+
+## Recommended values
+
 - `GOOGLE_SHEET_ID`
   - the spreadsheet id from the sheet URL
 - `GOOGLE_SERVICE_ACCOUNT_EMAIL`
@@ -27,6 +28,8 @@
   - base64 encoded version of the service account private key
 - `AUTH_TOKEN_SECRET`
   - a long random secret used to sign auth tokens
+- `CLIENT_ORIGIN`
+  - set this when the frontend is hosted on a different origin than the API, for example `https://your-frontend.example.com`
 
 ## PowerShell helpers
 
