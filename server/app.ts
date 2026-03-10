@@ -19,11 +19,25 @@ const allowedOrigins = (process.env.CLIENT_ORIGIN ?? '')
   .map((origin) => origin.trim())
   .filter(Boolean)
 
+if (process.env.NODE_ENV === 'production' && !allowedOrigins.length) {
+  throw new Error('CLIENT_ORIGIN must be set in production')
+}
+
 app.disable('x-powered-by')
 app.use(helmet())
 app.use(
   cors({
-    origin: allowedOrigins.length ? allowedOrigins : true,
+    origin(origin, callback) {
+      if (!origin) {
+        return callback(null, true)
+      }
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true)
+      }
+
+      return callback(new Error('Origin not allowed by CORS'))
+    },
   }),
 )
 app.use(express.json({ limit: '16kb' }))
@@ -61,7 +75,7 @@ async function requireAuth(
     return next()
   } catch (error) {
     return response.status(500).json({
-      message: error instanceof Error ? error.message : 'Unable to validate session',
+      message: 'Unable to validate session',
     })
   }
 }
@@ -112,7 +126,7 @@ app.post('/api/auth/login', async (request, response) => {
       return response.status(401).json({ message: 'Invalid credentials' })
     }
 
-    const token = signAuthToken(match.user.email, match.user.role)
+    const token = signAuthToken(match.user.email)
 
     return response.json({
       token,
@@ -135,7 +149,7 @@ app.get('/api/tasks', requireAuth, async (request: AuthenticatedRequest, respons
     response.json({ tasks: sanitizeTaskVisibility(request.currentUser!, tasks) })
   } catch (error) {
     response.status(500).json({
-      message: error instanceof Error ? error.message : 'Unable to load tasks',
+      message: 'Unable to load tasks',
     })
   }
 })
@@ -207,7 +221,7 @@ app.get('/api/users', requireAuth, requireAdmin, async (_request, response) => {
     response.json({ users })
   } catch (error) {
     response.status(500).json({
-      message: error instanceof Error ? error.message : 'Unable to load users',
+      message: 'Unable to load users',
     })
   }
 })
@@ -218,9 +232,16 @@ app.post('/api/users', requireAuth, requireAdmin, async (request, response) => {
     const email = String(request.body?.email ?? '').trim().toLowerCase()
     const password = String(request.body?.password ?? '')
     const role = String(request.body?.role ?? '')
-    const team = String(request.body?.team ?? '')
+    const teamsPayload = Array.isArray(request.body?.teams)
+      ? request.body.teams
+      : typeof request.body?.team === 'string'
+        ? [request.body.team]
+        : []
+    const selectedTeams = teamsPayload
+      .map((team: unknown) => String(team).trim())
+      .filter(Boolean)
 
-    if (!name || !email || !password || !role || !team) {
+    if (!name || !email || !password || !role || !selectedTeams.length) {
       return response.status(400).json({ message: 'All user fields are required' })
     }
 
@@ -229,7 +250,7 @@ app.post('/api/users', requireAuth, requireAdmin, async (request, response) => {
       email,
       password,
       role: role as User['role'],
-      team: team as User['team'],
+      teams: selectedTeams as User['teams'],
     })
 
     return response.status(201).json({ user })

@@ -9,12 +9,10 @@ async function main() {
   const adminEmail = process.env.SEED_ADMIN_EMAIL?.trim().toLowerCase()
   const adminPassword = process.env.SEED_ADMIN_PASSWORD?.trim()
   const adminName = process.env.SEED_ADMIN_NAME?.trim() || 'Ramy Bezriche'
-  const adminTeam = (process.env.SEED_ADMIN_TEAM?.trim() || 'UI/UX') as
-    | 'Frontend'
-    | 'Backend'
-    | 'Database'
-    | 'Docs'
-    | 'UI/UX'
+  const adminTeams = (process.env.SEED_ADMIN_TEAMS ?? process.env.SEED_ADMIN_TEAM ?? 'UI/UX')
+    .split(',')
+    .map((team) => team.trim())
+    .filter(Boolean) as ('Frontend' | 'Backend' | 'Database' | 'Docs' | 'UI/UX')[]
 
   if (!adminEmail || !adminPassword) {
     console.log('Sheets ensured. No admin user was seeded because SEED_ADMIN_EMAIL or SEED_ADMIN_PASSWORD is missing.')
@@ -27,7 +25,7 @@ async function main() {
     email: adminEmail,
     password: adminPassword,
     role: 'Admin',
-    team: adminTeam,
+    teams: adminTeams,
   })
 
   console.log(`Sheets are ready. Admin user ensured for ${user.email}.`)

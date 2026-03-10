@@ -97,7 +97,7 @@ export function AdminPage() {
 
   const userCountByTeam = TEAMS.map((team) => ({
     team,
-    count: users.filter((user) => user.team === team).length,
+    count: users.filter((user) => user.teams.includes(team)).length,
   }))
 
   if (isLoading) {
@@ -172,7 +172,9 @@ export function AdminPage() {
                   </div>
                   <div className="text-right">
                     <p className="text-sm font-medium text-slate-700">{user.role}</p>
-                    <p className="mt-1 text-xs uppercase tracking-[0.16em] text-slate-400">{user.team}</p>
+                    <p className="mt-1 text-xs uppercase tracking-[0.16em] text-slate-400">
+                      {user.teams.join(' / ')}
+                    </p>
                   </div>
                 </div>
               </div>

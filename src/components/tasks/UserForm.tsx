@@ -6,7 +6,7 @@ const initialState: CreateUserInput = {
   email: '',
   password: '',
   role: 'User',
-  team: 'Frontend',
+  teams: ['Frontend'],
 }
 
 type UserFormProps = {
@@ -16,9 +16,17 @@ type UserFormProps = {
 export function UserForm({ onSubmit }: UserFormProps) {
   const [formState, setFormState] = useState<CreateUserInput>(initialState)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [selectionError, setSelectionError] = useState('')
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+
+    if (!formState.teams.length) {
+      setSelectionError('Select at least one team.')
+      return
+    }
+
+    setSelectionError('')
     setIsSubmitting(true)
 
     try {
@@ -27,6 +35,16 @@ export function UserForm({ onSubmit }: UserFormProps) {
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  const toggleTeam = (team: CreateUserInput['teams'][number]) => {
+    setSelectionError('')
+    setFormState((current) => ({
+      ...current,
+      teams: current.teams.includes(team)
+        ? current.teams.filter((currentTeam) => currentTeam !== team)
+        : [...current.teams, team],
+    }))
   }
 
   return (
@@ -61,7 +79,7 @@ export function UserForm({ onSubmit }: UserFormProps) {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2">
         <div>
           <label className="mb-2 block text-sm font-medium text-slate-700" htmlFor="user-password">
             Password
@@ -99,30 +117,27 @@ export function UserForm({ onSubmit }: UserFormProps) {
             ))}
           </select>
         </div>
+      </div>
 
-        <div>
-          <label className="mb-2 block text-sm font-medium text-slate-700" htmlFor="user-team">
-            Team
-          </label>
-          <select
-            id="user-team"
-            required
-            value={formState.team}
-            onChange={(event) =>
-              setFormState((current) => ({
-                ...current,
-                team: event.target.value as CreateUserInput['team'],
-              }))
-            }
-            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-slate-400 focus:bg-white"
-          >
-            {TEAMS.map((team) => (
-              <option key={team} value={team}>
-                {team}
-              </option>
-            ))}
-          </select>
+      <div>
+        <p className="mb-2 block text-sm font-medium text-slate-700">Teams</p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {TEAMS.map((team) => (
+            <label
+              key={team}
+              className="flex cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 transition hover:border-slate-300 hover:bg-white"
+            >
+              <input
+                type="checkbox"
+                checked={formState.teams.includes(team)}
+                onChange={() => toggleTeam(team)}
+                className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
+              />
+              <span className="text-sm font-medium text-slate-700">{team}</span>
+            </label>
+          ))}
         </div>
+        {selectionError && <p className="mt-2 text-sm text-rose-600">{selectionError}</p>}
       </div>
 
       <button

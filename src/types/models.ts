@@ -11,7 +11,7 @@ export type User = {
   name: string
   email: string
   role: UserRole
-  team: Team
+  teams: Team[]
 }
 
 export type Task = {
@@ -44,5 +44,5 @@ export type CreateUserInput = {
   email: string
   password: string
   role: UserRole
-  team: Team
+  teams: Team[]
 }

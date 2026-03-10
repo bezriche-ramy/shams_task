@@ -78,7 +78,7 @@ export function TaskForm({ users, onSubmit }: TaskFormProps) {
             <option value="">Select a teammate</option>
             {users.map((user) => (
               <option key={user.id} value={user.email}>
-                {user.name} ({user.team})
+                {user.name} ({user.teams.join(', ')})
               </option>
             ))}
           </select>

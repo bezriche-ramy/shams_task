@@ -15,6 +15,16 @@ Copy the contents of `sheet-templates/Users.csv` into the `Users` tab.
 ID,Name,Email,Password,Role,Team
 ```
 
+`Team` can now store one or many teams in the same cell.
+
+Examples:
+
+```text
+UI/UX
+Frontend, UI/UX
+Backend, Database, Docs
+```
+
 ## Paste this into `Tasks`
 
 Copy the contents of `sheet-templates/Tasks.csv` into the `Tasks` tab.

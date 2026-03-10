@@ -64,7 +64,7 @@ export function Header() {
               {user.role === 'Admin' ? <Shield className="h-4 w-4 text-emerald-500" /> : <UserRound className="h-4 w-4 text-sky-500" />}
               <span>{user.role}</span>
               <span className="text-slate-400">|</span>
-              <span>{user.team}</span>
+              <span>{user.teams.join(', ')}</span>
             </div>
           </div>
 

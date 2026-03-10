@@ -7,7 +7,6 @@ import {
 
 type TokenPayload = {
   email: string
-  role: string
   exp: number
 }
 
@@ -35,6 +34,10 @@ function getTokenSecret() {
     throw new Error('Missing required environment variable: AUTH_TOKEN_SECRET')
   }
 
+  if (secret.length < 32) {
+    throw new Error('AUTH_TOKEN_SECRET must be at least 32 characters long')
+  }
+
   return secret
 }
 
@@ -46,7 +49,7 @@ export function hashPassword(password: string) {
 
 export function verifyPassword(password: string, storedValue: string) {
   if (!storedValue.startsWith(`${PASSWORD_PREFIX}$`)) {
-    return password === storedValue
+    return false
   }
 
   const [, salt, expectedHash] = storedValue.split('$')
@@ -65,12 +68,11 @@ export function verifyPassword(password: string, storedValue: string) {
   return timingSafeEqual(actualHash, expectedBuffer)
 }
 
-export function signAuthToken(email: string, role: string) {
+export function signAuthToken(email: string) {
   const header = base64UrlEncode(JSON.stringify({ alg: 'HS256', typ: 'JWT' }))
   const payload = base64UrlEncode(
     JSON.stringify({
       email,
-      role,
       exp: Math.floor(Date.now() / 1000) + TOKEN_TTL_SECONDS,
     } satisfies TokenPayload),
   )

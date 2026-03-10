@@ -16,7 +16,7 @@ export type User = {
   name: string
   email: string
   role: UserRole
-  team: Team
+  teams: Team[]
 }
 
 export type Task = {
@@ -36,7 +36,7 @@ type CreateUserInput = {
   email: string
   password: string
   role: UserRole
-  team: Team
+  teams: Team[]
 }
 
 type CreateTaskInput = {
@@ -53,7 +53,7 @@ type UserRow = {
   Email: string
   Password: string
   Role: UserRole
-  Team: Team
+  Team: string
 }
 
 type TaskRow = {
@@ -86,6 +86,32 @@ function assertTeam(team: string): asserts team is Team {
   if (!TEAMS.includes(team as Team)) {
     throw new Error(`Invalid team: ${team}`)
   }
+}
+
+function parseTeams(rawValue: string) {
+  const normalized = rawValue.trim()
+
+  if (!normalized) {
+    return ['Frontend'] as Team[]
+  }
+
+  const teams = normalized
+    .split(',')
+    .map((team) => team.trim())
+    .filter(Boolean)
+
+  teams.forEach(assertTeam)
+
+  return [...new Set(teams)] as Team[]
+}
+
+function serializeTeams(teams: Team[]) {
+  if (!teams.length) {
+    throw new Error('At least one team is required')
+  }
+
+  teams.forEach(assertTeam)
+  return [...new Set(teams)].join(', ')
 }
 
 function assertRole(role: string): asserts role is UserRole {
@@ -195,17 +221,16 @@ export class GoogleSheetsService {
 
     return rows.map((row) => {
       const role = normalizeValue(row.get('Role')) || 'User'
-      const team = normalizeValue(row.get('Team')) || 'Frontend'
+      const teams = parseTeams(normalizeValue(row.get('Team')))
 
       assertRole(role)
-      assertTeam(team)
 
       return {
         id: normalizeValue(row.get('ID')),
         name: normalizeValue(row.get('Name')),
         email: normalizeValue(row.get('Email')),
         role,
-        team,
+        teams,
       } satisfies User
     })
   }
@@ -220,10 +245,9 @@ export class GoogleSheetsService {
 
       if (rowEmail === normalizedEmail) {
         const role = normalizeValue(row.get('Role')) || 'User'
-        const team = normalizeValue(row.get('Team')) || 'Frontend'
+        const teams = parseTeams(normalizeValue(row.get('Team')))
 
         assertRole(role)
-        assertTeam(team)
 
         return {
           user: {
@@ -231,7 +255,7 @@ export class GoogleSheetsService {
             name: normalizeValue(row.get('Name')),
             email: normalizeValue(row.get('Email')),
             role,
-            team,
+            teams,
           } satisfies User,
           passwordHash: normalizeValue(row.get('Password')),
         }
@@ -243,7 +267,9 @@ export class GoogleSheetsService {
 
   async createUser(input: CreateUserInput) {
     assertRole(input.role)
-    assertTeam(input.team)
+    if (!input.teams.length) {
+      throw new Error('At least one team is required')
+    }
 
     const existingUser = await this.findUserByEmail(input.email)
 
@@ -260,7 +286,7 @@ export class GoogleSheetsService {
       Email: input.email.trim().toLowerCase(),
       Password: hashPassword(input.password),
       Role: input.role,
-      Team: input.team,
+      Team: serializeTeams(input.teams),
     })
 
     return {
@@ -268,13 +294,15 @@ export class GoogleSheetsService {
       name: input.name.trim(),
       email: input.email.trim().toLowerCase(),
       role: input.role,
-      team: input.team,
+      teams: [...new Set(input.teams)],
     } satisfies User
   }
 
   async ensureUser(input: CreateUserInput & { id?: string }) {
     assertRole(input.role)
-    assertTeam(input.team)
+    if (!input.teams.length) {
+      throw new Error('At least one team is required')
+    }
 
     const existingUser = await this.findUserByEmail(input.email)
 
@@ -291,7 +319,7 @@ export class GoogleSheetsService {
       Email: input.email.trim().toLowerCase(),
       Password: hashPassword(input.password),
       Role: input.role,
-      Team: input.team,
+      Team: serializeTeams(input.teams),
     })
 
     return {
@@ -299,7 +327,7 @@ export class GoogleSheetsService {
       name: input.name.trim(),
       email: input.email.trim().toLowerCase(),
       role: input.role,
-      team: input.team,
+      teams: [...new Set(input.teams)],
     } satisfies User
   }
 
