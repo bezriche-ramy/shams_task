@@ -1,11 +1,11 @@
 import { JWT } from 'google-auth-library'
-import { GoogleSpreadsheet } from 'google-spreadsheet'
+import { GoogleSpreadsheet, type GoogleSpreadsheetRow } from 'google-spreadsheet'
 import { nanoid } from 'nanoid'
 import { hashPassword } from './security.js'
 
 const TEAMS = ['Frontend', 'Backend', 'Database', 'Docs', 'UI/UX'] as const
 const USER_ROLES = ['Admin', 'User'] as const
-const TASK_STATUSES = ['Pending', 'In Progress', 'Completed', 'Blocked'] as const
+const TASK_STATUSES = ['Pending', 'In Progress', 'Completed', 'Blocked', 'Archived'] as const
 
 export type Team = (typeof TEAMS)[number]
 export type UserRole = (typeof USER_ROLES)[number]
@@ -45,6 +45,10 @@ type CreateTaskInput = {
   assignedTo: string
   team: Team
   dueDate: string
+}
+
+type UpdateTaskInput = CreateTaskInput & {
+  status: TaskStatus
 }
 
 type UserRow = {
@@ -153,6 +157,28 @@ function normalizeValue(value: unknown) {
 export class GoogleSheetsService {
   private document: GoogleSpreadsheet | null = null
   private documentPromise: Promise<GoogleSpreadsheet> | null = null
+
+  private toTask(row: GoogleSpreadsheetRow<TaskRow>, users: User[]) {
+    const team = normalizeValue(row.get('Team')) || 'Frontend'
+    const status = normalizeValue(row.get('Status')) || 'Pending'
+    const assignedTo = normalizeValue(row.get('AssignedTo')).toLowerCase()
+    const assignedUser = users.find((user) => user.email.toLowerCase() === assignedTo)
+
+    assertTeam(team)
+    assertStatus(status)
+
+    return {
+      id: normalizeValue(row.get('TaskID')),
+      title: normalizeValue(row.get('Title')),
+      description: normalizeValue(row.get('Description')),
+      assignedTo,
+      assignedToName: assignedUser?.name ?? assignedTo,
+      team,
+      status,
+      createdDate: normalizeValue(row.get('CreatedDate')),
+      dueDate: normalizeValue(row.get('DueDate')),
+    } satisfies Task
+  }
 
   private async getDocument() {
     if (this.document) {
@@ -337,29 +363,8 @@ export class GoogleSheetsService {
       this.listUsers(),
     ])
     const rows = await sheet.getRows<TaskRow>()
-    const userMap = new Map(users.map((user) => [user.email.toLowerCase(), user]))
 
-    return rows.map((row) => {
-      const team = normalizeValue(row.get('Team')) || 'Frontend'
-      const status = normalizeValue(row.get('Status')) || 'Pending'
-      const assignedTo = normalizeValue(row.get('AssignedTo')).toLowerCase()
-      const assignedUser = userMap.get(assignedTo)
-
-      assertTeam(team)
-      assertStatus(status)
-
-      return {
-        id: normalizeValue(row.get('TaskID')),
-        title: normalizeValue(row.get('Title')),
-        description: normalizeValue(row.get('Description')),
-        assignedTo,
-        assignedToName: assignedUser?.name ?? assignedTo,
-        team,
-        status,
-        createdDate: normalizeValue(row.get('CreatedDate')),
-        dueDate: normalizeValue(row.get('DueDate')),
-      } satisfies Task
-    })
+    return rows.map((row) => this.toTask(row, users))
   }
 
   async createTask(input: CreateTaskInput) {
@@ -416,23 +421,51 @@ export class GoogleSheetsService {
     row.set('Status', status)
     await row.save()
 
-    const assignedTo = normalizeValue(row.get('AssignedTo')).toLowerCase()
-    const assignedUser = users.find((user) => user.email.toLowerCase() === assignedTo)
-    const team = normalizeValue(row.get('Team')) || 'Frontend'
+    return this.toTask(row, users)
+  }
 
-    assertTeam(team)
+  async updateTask(taskId: string, input: UpdateTaskInput) {
+    assertTeam(input.team)
+    assertStatus(input.status)
 
-    return {
-      id: normalizeValue(row.get('TaskID')),
-      title: normalizeValue(row.get('Title')),
-      description: normalizeValue(row.get('Description')),
-      assignedTo,
-      assignedToName: assignedUser?.name ?? assignedTo,
-      team,
-      status,
-      createdDate: normalizeValue(row.get('CreatedDate')),
-      dueDate: normalizeValue(row.get('DueDate')),
-    } satisfies Task
+    const assignee = await this.findUserByEmail(input.assignedTo)
+
+    if (!assignee) {
+      throw new Error('Assigned user was not found')
+    }
+
+    const [sheet, users] = await Promise.all([
+      this.ensureSheet<TaskRow>('Tasks', TASKS_HEADERS),
+      this.listUsers(),
+    ])
+    const rows = await sheet.getRows<TaskRow>()
+    const row = rows.find((candidate) => normalizeValue(candidate.get('TaskID')) === taskId)
+
+    if (!row) {
+      throw new Error('Task not found')
+    }
+
+    row.set('Title', input.title.trim())
+    row.set('Description', input.description.trim())
+    row.set('AssignedTo', input.assignedTo.trim().toLowerCase())
+    row.set('Team', input.team)
+    row.set('Status', input.status)
+    row.set('DueDate', input.dueDate)
+    await row.save()
+
+    return this.toTask(row, users)
+  }
+
+  async deleteTask(taskId: string) {
+    const sheet = await this.ensureSheet<TaskRow>('Tasks', TASKS_HEADERS)
+    const rows = await sheet.getRows<TaskRow>()
+    const row = rows.find((candidate) => normalizeValue(candidate.get('TaskID')) === taskId)
+
+    if (!row) {
+      throw new Error('Task not found')
+    }
+
+    await row.delete()
   }
 }
 

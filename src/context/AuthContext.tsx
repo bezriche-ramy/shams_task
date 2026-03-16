@@ -1,46 +1,12 @@
-import {
-  createContext,
-  startTransition,
-  useContext,
-  useEffect,
-  useState,
-  type ReactNode,
-} from 'react'
+import { startTransition, useEffect, useState, type ReactNode } from 'react'
 import { api } from '../services/api.ts'
 import type { User } from '../types/models.ts'
-
-type SessionState = {
-  token: string
-  user: User
-}
-
-type AuthContextValue = {
-  token: string | null
-  user: User | null
-  isAuthenticated: boolean
-  isHydrating: boolean
-  login: (email: string, password: string) => Promise<void>
-  logout: () => void
-}
-
-const STORAGE_KEY = 'task-dashboard-session'
-
-const AuthContext = createContext<AuthContextValue | undefined>(undefined)
-
-function readStoredSession(): SessionState | null {
-  const raw = localStorage.getItem(STORAGE_KEY)
-
-  if (!raw) {
-    return null
-  }
-
-  try {
-    return JSON.parse(raw) as SessionState
-  } catch {
-    localStorage.removeItem(STORAGE_KEY)
-    return null
-  }
-}
+import {
+  AuthContext,
+  type AuthContextValue,
+  STORAGE_KEY,
+  readStoredSession,
+} from './auth-context.ts'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null)
@@ -116,14 +82,4 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
-}
-
-export function useAuth() {
-  const context = useContext(AuthContext)
-
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider')
-  }
-
-  return context
 }

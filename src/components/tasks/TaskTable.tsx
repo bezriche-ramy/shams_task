@@ -1,13 +1,25 @@
 import { AlertTriangle } from 'lucide-react'
-import { TASK_STATUSES, type Task, type TaskStatus } from '../../types/models.ts'
+import { Link } from 'react-router-dom'
+import { cn } from '../../lib/cn.ts'
+import { getTeamTasksPath } from '../../lib/team-links.ts'
+import { isTaskOverdue } from '../../lib/tasks.ts'
+import { TEAM_THEME } from '../../lib/theme.ts'
+import { ACTIVE_TASK_STATUSES, type Task, type TaskStatus } from '../../types/models.ts'
+import { Chip } from '../ui/Chip.tsx'
+import { Select } from '../ui/Field.tsx'
 import { StatusBadge } from './StatusBadge.tsx'
+import { TaskRowActions } from './TaskRowActions.tsx'
 
 type TaskTableProps = {
   tasks: Task[]
   canUpdate?: boolean
+  canManage?: boolean
   compact?: boolean
-  updatingTaskId?: string | null
+  busyTaskId?: string | null
   onStatusChange?: (taskId: string, status: TaskStatus) => Promise<void> | void
+  onEditTask?: (task: Task) => void
+  onToggleArchiveTask?: (task: Task) => Promise<void> | void
+  onDeleteTask?: (task: Task) => void
   emptyCopy?: string
 }
 
@@ -23,98 +35,128 @@ function formatDate(dateString: string) {
   }).format(new Date(dateString))
 }
 
-function isOverdue(task: Task) {
-  return task.status !== 'Completed' && new Date(task.dueDate) < new Date()
-}
-
 export function TaskTable({
   tasks,
   canUpdate = false,
+  canManage = false,
   compact = false,
-  updatingTaskId,
+  busyTaskId,
   onStatusChange,
+  onDeleteTask,
+  onEditTask,
+  onToggleArchiveTask,
   emptyCopy = 'No tasks match the current filters.',
 }: TaskTableProps) {
   if (!tasks.length) {
     return (
-      <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-10 text-center text-sm text-slate-500">
+      <div className="clay-surface-inset rounded-[1.65rem] px-5 py-12 text-center text-sm text-[#b8c7da]">
         {emptyCopy}
       </div>
     )
   }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full divide-y divide-slate-200 text-left">
+    <div className="clay-surface-inset clay-scroll min-w-0 overflow-x-auto rounded-[1.75rem] p-3">
+      <table className="min-w-full divide-y divide-[#4D00EE]/12 text-left">
         <thead>
-          <tr className="text-xs uppercase tracking-[0.18em] text-slate-500">
-            <th className="pb-4 pr-4 font-medium">Task</th>
-            {!compact && <th className="pb-4 pr-4 font-medium">Description</th>}
-            <th className="pb-4 pr-4 font-medium">Owner</th>
-            <th className="pb-4 pr-4 font-medium">Team</th>
-            <th className="pb-4 pr-4 font-medium">Deadline</th>
-            <th className="pb-4 pr-4 font-medium">Status</th>
+          <tr className="text-xs uppercase tracking-[0.22em] text-[#8fa4bf]">
+            <th className="px-4 pb-5 pt-3 font-medium">Task</th>
+            {!compact && <th className="pb-5 pr-5 font-medium">Description</th>}
+            <th className="pb-5 pr-5 font-medium">Owner</th>
+            <th className="pb-5 pr-5 font-medium">Team</th>
+            <th className="pb-5 pr-5 font-medium">Deadline</th>
+            <th className="pb-5 pr-4 font-medium">Status</th>
+            {canManage ? <th className="pb-5 pr-4 text-right font-medium">Actions</th> : null}
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-100">
+        <tbody className="divide-y divide-[#122F45]/24">
           {tasks.map((task) => {
-            const overdue = isOverdue(task)
+            const overdue = isTaskOverdue(task)
+            const isBusy = busyTaskId === task.id
+            const canInlineStatusUpdate = canUpdate && onStatusChange && task.status !== 'Archived'
 
             return (
-              <tr key={task.id} className="align-top">
-                <td className="py-4 pr-4">
+              <tr
+                key={task.id}
+                className="align-top text-sm text-[#c3d0e2] transition duration-200 hover:bg-[#122F45]/20"
+              >
+                <td className="px-4 py-5">
                   <div className="min-w-[220px]">
-                    <p className="font-semibold text-slate-900">{task.title}</p>
-                    <p className="mt-1 text-xs uppercase tracking-[0.18em] text-slate-400">{task.id}</p>
+                    <p className="font-semibold text-[#eef4ff]">{task.title}</p>
+                    <p className="mt-1 text-xs uppercase tracking-[0.18em] text-[#8fa4bf]">
+                      {task.id}
+                    </p>
                   </div>
                 </td>
                 {!compact && (
-                  <td className="py-4 pr-4 text-sm leading-6 text-slate-600">
+                  <td className="py-5 pr-5 leading-7 text-[#b8c7da]">
                     <div className="max-w-md">{task.description || 'No description provided.'}</div>
                   </td>
                 )}
-                <td className="py-4 pr-4 text-sm text-slate-700">
+                <td className="py-5 pr-5 text-[#c3d0e2]">
                   <div className="min-w-[150px]">
                     <p className="font-medium">{task.assignedToName}</p>
-                    <p className="text-slate-500">{task.assignedTo}</p>
+                    <p className="text-[#8fa4bf]">{task.assignedTo}</p>
                   </div>
                 </td>
-                <td className="py-4 pr-4">
-                  <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
-                    {task.team}
-                  </span>
+                <td className="py-5 pr-5">
+                  <Link
+                    to={getTeamTasksPath(task.team)}
+                    className="rounded-full transition duration-200 hover:-translate-y-0.5 focus-visible:ring-4 focus-visible:ring-[#4D00EE]/24"
+                  >
+                    <Chip className={TEAM_THEME[task.team].badgeClassName}>{task.team}</Chip>
+                  </Link>
                 </td>
-                <td className="py-4 pr-4 text-sm text-slate-600">
+                <td className="py-5 pr-5 text-[#b8c7da]">
                   <div className="min-w-[140px]">
                     <span>{formatDate(task.dueDate)}</span>
                     {overdue && (
-                      <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-rose-50 px-2.5 py-1 text-xs font-medium text-rose-600">
-                        <AlertTriangle className="h-3.5 w-3.5" />
-                        Overdue
+                      <div className="mt-2">
+                        <Chip className="bg-[#4D00EE]/18 text-[#d5c6ff] ring-[#4D00EE]/30 shadow-[0_6px_14px_rgba(0,0,0,0.26)]">
+                          <AlertTriangle className="h-3.5 w-3.5" />
+                          Overdue
+                        </Chip>
                       </div>
                     )}
                   </div>
                 </td>
-                <td className="py-4 pr-0">
-                  <div className="min-w-[180px]">
-                    {canUpdate && onStatusChange ? (
-                      <select
+                <td className="py-5 pr-4">
+                  <div className="min-w-[185px]">
+                    {canInlineStatusUpdate ? (
+                      <Select
                         value={task.status}
-                        disabled={updatingTaskId === task.id}
+                        fieldSize="sm"
+                        disabled={isBusy}
                         onChange={(event) => onStatusChange(task.id, event.target.value as TaskStatus)}
-                        className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none ring-0 transition focus:border-slate-400"
+                        className={cn(
+                          'font-medium',
+                          isBusy && 'cursor-wait opacity-70',
+                        )}
                       >
-                        {TASK_STATUSES.map((status) => (
+                        {ACTIVE_TASK_STATUSES.map((status) => (
                           <option key={status} value={status}>
                             {status}
                           </option>
                         ))}
-                      </select>
+                      </Select>
                     ) : (
                       <StatusBadge status={task.status} />
                     )}
                   </div>
                 </td>
+                {canManage && onEditTask && onToggleArchiveTask && onDeleteTask ? (
+                  <td className="py-5 pr-4">
+                    <div className="flex justify-end">
+                      <TaskRowActions
+                        task={task}
+                        disabled={isBusy}
+                        onEdit={onEditTask}
+                        onToggleArchive={onToggleArchiveTask}
+                        onDelete={onDeleteTask}
+                      />
+                    </div>
+                  </td>
+                ) : null}
               </tr>
             )
           })}

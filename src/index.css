@@ -1,13 +1,45 @@
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 @import 'tailwindcss';
 
 :root {
-  font-family: 'Space Grotesk', sans-serif;
-  color: #0f172a;
+  color-scheme: dark;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  color: #eef4ff;
   background:
-    radial-gradient(circle at top right, rgba(59, 130, 246, 0.08), transparent 28%),
-    radial-gradient(circle at bottom left, rgba(34, 197, 94, 0.08), transparent 24%),
-    #f8fafc;
+    radial-gradient(circle at top left, rgba(77, 0, 238, 0.22), transparent 34%),
+    radial-gradient(circle at right center, rgba(216, 255, 0, 0.12), transparent 28%),
+    linear-gradient(180deg, #040915 0%, #071120 48%, #09162a 100%);
+  --brand-navy: #122F45;
+  --brand-purple: #4D00EE;
+  --brand-lime: #D8FF00;
+  --canvas-top: #040915;
+  --canvas-bottom: #09162a;
+  --surface-elevated: rgba(10, 20, 38, 0.96);
+  --surface-soft: rgba(8, 17, 32, 0.94);
+  --surface-inset: rgba(4, 10, 20, 0.96);
+  --surface-shell: rgba(7, 15, 29, 0.92);
+  --surface-tint: rgba(216, 255, 0, 0.08);
+  --border-soft: rgba(77, 0, 238, 0.24);
+  --border-strong: rgba(216, 255, 0, 0.12);
+  --text-strong: #eef4ff;
+  --text-muted: #c3d0e2;
+  --text-soft: #8fa4bf;
+  --shadow-elevated:
+    24px 24px 44px rgba(0, 0, 0, 0.42),
+    -14px -14px 28px rgba(77, 0, 238, 0.14);
+  --shadow-elevated-sm:
+    16px 16px 28px rgba(0, 0, 0, 0.34),
+    -10px -10px 20px rgba(77, 0, 238, 0.1);
+  --shadow-soft:
+    12px 12px 22px rgba(0, 0, 0, 0.28),
+    -8px -8px 18px rgba(77, 0, 238, 0.08);
+  --shadow-inset:
+    inset 10px 10px 18px rgba(0, 0, 0, 0.32),
+    inset -8px -8px 16px rgba(77, 0, 238, 0.08);
+  --shadow-inset-sm:
+    inset 6px 6px 10px rgba(0, 0, 0, 0.24),
+    inset -5px -5px 10px rgba(77, 0, 238, 0.08);
+  --focus-ring: 0 0 0 4px rgba(216, 255, 0, 0.18);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -27,6 +59,39 @@ body,
 
 body {
   margin: 0;
+  min-height: 100vh;
+  color: var(--text-strong);
+  background:
+    radial-gradient(circle at top left, rgba(77, 0, 238, 0.14), transparent 24%),
+    radial-gradient(circle at 78% 18%, rgba(216, 255, 0, 0.12), transparent 20%),
+    linear-gradient(180deg, var(--canvas-top) 0%, var(--canvas-bottom) 52%, #0d1a2f 100%);
+}
+
+body::before,
+body::after {
+  position: fixed;
+  inset: auto;
+  z-index: -1;
+  border-radius: 999px;
+  content: '';
+  filter: blur(10px);
+  pointer-events: none;
+}
+
+body::before {
+  top: 5rem;
+  left: -6rem;
+  width: 18rem;
+  height: 18rem;
+  background: radial-gradient(circle, rgba(77, 0, 238, 0.18), transparent 70%);
+}
+
+body::after {
+  right: -4rem;
+  bottom: 8rem;
+  width: 20rem;
+  height: 20rem;
+  background: radial-gradient(circle, rgba(216, 255, 0, 0.14), transparent 70%);
 }
 
 a {
@@ -41,19 +106,159 @@ textarea {
   font: inherit;
 }
 
+input,
+select,
+textarea {
+  color: var(--text-strong);
+  caret-color: var(--brand-lime);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--text-soft);
+  opacity: 1;
+}
+
+select option,
+select optgroup {
+  color: var(--text-strong);
+  background: #071120;
+}
+
+input[type='date']::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  filter: invert(0.94) sepia(0.08) saturate(0.55) hue-rotate(181deg);
+  opacity: 0.88;
+}
+
+input[type='date']::-webkit-datetime-edit,
+input[type='date']::-webkit-datetime-edit-fields-wrapper,
+input[type='date']::-webkit-datetime-edit-text,
+input[type='date']::-webkit-datetime-edit-month-field,
+input[type='date']::-webkit-datetime-edit-day-field,
+input[type='date']::-webkit-datetime-edit-year-field {
+  color: var(--text-strong);
+}
+
+input:-webkit-autofill,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-text-fill-color: var(--text-strong);
+  box-shadow: 0 0 0 1000px #08111f inset;
+  transition: background-color 9999s ease-in-out 0s;
+}
+
 ::selection {
-  background: rgba(34, 197, 94, 0.18);
+  background: rgba(216, 255, 0, 0.24);
 }
 
-.surface-ring {
-  position: relative;
+.display-font {
+  font-family: 'Fraunces', serif;
 }
 
-.surface-ring::before {
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  content: '';
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+.clay-shell {
+  border: 1px solid var(--border-soft);
+  background:
+    linear-gradient(150deg, rgba(77, 0, 238, 0.18), rgba(7, 15, 29, 0.96) 42%, rgba(4, 10, 20, 0.98)),
+    linear-gradient(180deg, rgba(216, 255, 0, 0.04), rgba(18, 47, 69, 0.04));
+  box-shadow: var(--shadow-elevated);
+  backdrop-filter: blur(18px);
+}
+
+.clay-surface {
+  border: 1px solid var(--border-soft);
+  background: linear-gradient(150deg, rgba(77, 0, 238, 0.14), var(--surface-elevated));
+  box-shadow: var(--shadow-elevated-sm);
+}
+
+.clay-surface-soft {
+  border: 1px solid rgba(77, 0, 238, 0.14);
+  background: linear-gradient(150deg, rgba(18, 47, 69, 0.72), var(--surface-soft));
+  box-shadow: var(--shadow-soft);
+}
+
+.clay-surface-inset {
+  border: 1px solid var(--border-strong);
+  background: linear-gradient(155deg, rgba(216, 255, 0, 0.04), var(--surface-inset));
+  box-shadow: var(--shadow-inset);
+}
+
+.clay-button {
+  border: 1px solid rgba(77, 0, 238, 0.18);
+  box-shadow: var(--shadow-elevated-sm);
+}
+
+.clay-button:hover {
+  transform: translateY(-1px);
+}
+
+.clay-button:active {
+  transform: translateY(1px) scale(0.99);
+  box-shadow: var(--shadow-inset-sm);
+}
+
+.clay-input {
+  background: linear-gradient(155deg, rgba(216, 255, 0, 0.05), rgba(5, 12, 23, 0.98));
+  box-shadow: var(--shadow-inset-sm);
+  transition:
+    box-shadow 0.2s ease,
+    transform 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.clay-input:disabled {
+  cursor: not-allowed;
+  opacity: 0.72;
+}
+
+.clay-input:hover {
+  background: linear-gradient(155deg, rgba(77, 0, 238, 0.12), rgba(7, 16, 30, 0.98));
+}
+
+.clay-input:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-inset-sm), var(--focus-ring);
+}
+
+.clay-chip {
+  border: 1px solid rgba(77, 0, 238, 0.16);
+  background: linear-gradient(145deg, rgba(77, 0, 238, 0.14), rgba(9, 19, 35, 0.94));
+  box-shadow: var(--shadow-soft);
+}
+
+.clay-alert {
+  border: 1px solid rgba(77, 0, 238, 0.18);
+  box-shadow: var(--shadow-soft);
+}
+
+.clay-scroll::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.clay-scroll::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(77, 0, 238, 0.34), rgba(216, 255, 0, 0.18))
+    padding-box;
+}
+
+.clay-scroll::-webkit-scrollbar-track {
+  border-radius: 999px;
+  background: rgba(18, 47, 69, 0.28);
+}
+
+:focus-visible {
+  outline: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }

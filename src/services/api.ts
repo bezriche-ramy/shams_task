@@ -1,9 +1,11 @@
 import type {
   AuthResponse,
   CreateTaskInput,
+  TaskDeleteMode,
   CreateUserInput,
   Task,
   TaskStatus,
+  UpdateTaskInput,
   User,
 } from '../types/models.ts'
 
@@ -68,6 +70,24 @@ export const api = {
     }).then((payload) => payload.task)
   },
 
+  updateTask(token: string, taskId: string, input: UpdateTaskInput) {
+    return request<{ task: Task }>(`/tasks/${taskId}`, {
+      method: 'PATCH',
+      token,
+      body: JSON.stringify(input),
+    }).then((payload) => payload.task)
+  },
+
+  deleteTask(token: string, taskId: string, mode: TaskDeleteMode) {
+    return request<{ mode: TaskDeleteMode; task?: Task; taskId: string }>(
+      `/tasks/${taskId}?mode=${mode}`,
+      {
+        method: 'DELETE',
+        token,
+      },
+    )
+  },
+
   createTask(token: string, input: CreateTaskInput) {
     return request<{ task: Task }>('/tasks', {
       method: 'POST',
@@ -78,6 +98,10 @@ export const api = {
 
   getUsers(token: string) {
     return request<{ users: User[] }>('/users', { token }).then((payload) => payload.users)
+  },
+
+  getAssignableUsers(token: string) {
+    return request<{ users: User[] }>('/users/options', { token }).then((payload) => payload.users)
   },
 
   createUser(token: string, input: CreateUserInput) {

@@ -208,6 +208,56 @@ app.post('/api/tasks', requireAuth, requireAdmin, async (request: AuthenticatedR
   }
 })
 
+app.patch('/api/tasks/:taskId', requireAuth, async (request: AuthenticatedRequest, response) => {
+  try {
+    const dueDate = String(request.body?.dueDate ?? '')
+    const assignedTo = String(request.body?.assignedTo ?? '').trim().toLowerCase()
+    const title = String(request.body?.title ?? '')
+    const description = String(request.body?.description ?? '')
+    const team = String(request.body?.team ?? '')
+    const status = String(request.body?.status ?? '') as TaskStatus
+
+    if (!title || !assignedTo || !team || !dueDate || !status) {
+      return response.status(400).json({
+        message: 'Title, assignee, team, due date, and status are required',
+      })
+    }
+
+    if (!taskStatuses.includes(status)) {
+      return response.status(400).json({ message: 'Invalid task status' })
+    }
+
+    const taskIdParam = request.params.taskId
+    const taskId = Array.isArray(taskIdParam) ? taskIdParam[0] : taskIdParam
+
+    if (!taskId) {
+      return response.status(400).json({ message: 'Task ID is required' })
+    }
+
+    const visibleTasks = sanitizeTaskVisibility(request.currentUser!, await sheetsService.listTasks())
+    const targetTask = visibleTasks.find((task) => task.id === taskId)
+
+    if (!targetTask) {
+      return response.status(403).json({ message: 'You do not have access to update this task' })
+    }
+
+    const task = await sheetsService.updateTask(taskId, {
+      title,
+      description,
+      assignedTo,
+      team: team as (typeof teams)[number],
+      dueDate,
+      status,
+    })
+
+    return response.json({ task })
+  } catch (error) {
+    return response.status(400).json({
+      message: error instanceof Error ? error.message : 'Unable to update task',
+    })
+  }
+})
+
 app.patch('/api/tasks/:taskId/status', requireAuth, async (request: AuthenticatedRequest, response) => {
   try {
     const requestedStatus = String(request.body?.status ?? '') as TaskStatus
@@ -239,6 +289,41 @@ app.patch('/api/tasks/:taskId/status', requireAuth, async (request: Authenticate
   }
 })
 
+app.delete('/api/tasks/:taskId', requireAuth, async (request: AuthenticatedRequest, response) => {
+  try {
+    const mode = String(request.query.mode ?? '')
+    const taskIdParam = request.params.taskId
+    const taskId = Array.isArray(taskIdParam) ? taskIdParam[0] : taskIdParam
+
+    if (!taskId) {
+      return response.status(400).json({ message: 'Task ID is required' })
+    }
+
+    if (mode !== 'archive' && mode !== 'permanent') {
+      return response.status(400).json({ message: 'Invalid delete mode' })
+    }
+
+    const visibleTasks = sanitizeTaskVisibility(request.currentUser!, await sheetsService.listTasks())
+    const targetTask = visibleTasks.find((task) => task.id === taskId)
+
+    if (!targetTask) {
+      return response.status(403).json({ message: 'You do not have access to update this task' })
+    }
+
+    if (mode === 'archive') {
+      const task = await sheetsService.updateTaskStatus(taskId, 'Archived')
+      return response.json({ mode, task, taskId })
+    }
+
+    await sheetsService.deleteTask(taskId)
+    return response.json({ mode, taskId })
+  } catch (error) {
+    return response.status(400).json({
+      message: error instanceof Error ? error.message : 'Unable to delete task',
+    })
+  }
+})
+
 app.get('/api/users', requireAuth, requireAdmin, async (_request, response) => {
   try {
     const users = await sheetsService.listUsers()
@@ -246,6 +331,17 @@ app.get('/api/users', requireAuth, requireAdmin, async (_request, response) => {
   } catch {
     response.status(500).json({
       message: 'Unable to load users',
+    })
+  }
+})
+
+app.get('/api/users/options', requireAuth, async (_request, response) => {
+  try {
+    const users = await sheetsService.listUsers()
+    response.json({ users })
+  } catch {
+    response.status(500).json({
+      message: 'Unable to load assignable users',
     })
   }
 })
